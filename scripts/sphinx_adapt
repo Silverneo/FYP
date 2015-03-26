@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# Acoustic Model Adaption
+# Author @ Zhang Chunmeng
+# Date @ 12/01/2015
+# Last Modified @ 31/01/2015
+
+function run_bw {
+# collect statistics from the adaptation data
+# bw from SphinxTrain (found in /usr/local/libexec/sphinxtrain)
+# IMPORTANT modify the parameters below based on feat.params file in AM
+./bw -hmmdir $amdir \
+    -moddeffn $amdir/mdef.txt \
+    -ts2cbfn ".$mode." \
+    -ctlfn $etcdir/*.fields \
+    -lsnfn $etcdir/*.transcription \
+    -dictfn $etcdir/*.dic \
+    -feat 1s_c_d_dd \
+    -varnorm no \
+    -cmninit 40,3,-1 \
+    -svspec 0-12/13-25/26-38 \
+    -cmn current \
+    -agc none \
+    -cepdir temp \
+    -accumdir temp
+}
+
+# Input parameters
+# TODO parse command line parameters in a standard way using dash options
+
+amdir="en-us-ptm-2.0"
+wavdir="wav"
+etcdir="etc"
+mode="ptm"
+
+# create buffer directory for adaptation
+if [ ! -d "temp" ]; then
+    mkdir temp
+fi
+
+# generate feature files from wav recordings
+# sphinx_fe from SphinxBase
+sphinx_fe -argfile $amdir/feat.params -samprate 16000 -c $etcdir/*.fields -di $wavdir -do temp -ei wav -eo mfc -mswav yes
+
+# convert mdef to text file
+pocketsphinx_mdef_convert -text $amdir/mdef $amdir/mdef.txt
+
+run_bw
+
+# MLLR Adaptation, mllr_matrix generated
+./mllr_solve -meanfn $amdir/means -varfn $amdir/variances -outmllrfn mllr_matrix -accumdir temp
+
+#TODO
+# mllr_transform from SphinxTrain Adjust the mean of the original AM
+./mllr_transform -inmeanfn $amdir/means -outmeanfn $amdir/means -mllrmat mllr_matrix 
+
+run_bw
+
+# MAP Adaptation
+# Add -fixedtau yes -tau "value" for semi & ptm model
+#./map_adapt -meanfn $amdir/means \
+./map_adapt -meanfn $amdir/means \
+    -varfn $amdir/variances \
+    -mixwfn $amdir/mixture_weights \
+    -tmatfn $amdir/transition_matrices \
+    -accumdir temp \
+    -fixedtau yes \
+    -tau 100 \
+    -mapmeanfn $amdir/means \
+    -mapvarfn $amdir/variances \
+    -mapmixwfn $amdir/mixture_weights \
+    -maptmatfn $amdir/transition_matrices
+
+# TODO clean up files

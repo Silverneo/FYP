@@ -47,9 +47,9 @@ int main(void)
 	}
 
     config = cmd_ln_init(NULL, ps_args(), TRUE,
-            "-hmm", MODELDIR "/hmm/en-us-ptm-2.0-adapt",
-            "-lm", MODELDIR "/lm/generic.lm",
-            "-dict", MODELDIR "/lm/cmu07a.dic",
+            "-hmm", MODELDIR "/hmm/en_US/en-us-ptm-2.0-adapt",
+            "-lm", MODELDIR "/lm/en_US/cmusphinx-5.0-en-us.lm",
+            "-dict", MODELDIR "/lm/en_US/cmu07a.dic",
             "-logfn", "/dev/null",
             "-cmn", "current",
             NULL);
@@ -76,7 +76,7 @@ int main(void)
     }
     else if (pid > 0)
     {
-        printf("Starting daemon process: %d", pid);
+        printf("Starting daemon process: %d\n", pid);
         close(sockfd);
         ps_free(ps);
         exit(0);

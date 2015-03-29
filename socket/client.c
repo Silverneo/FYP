@@ -10,17 +10,18 @@ void str_cli(FILE *fp, int sockfd);        //used for socket transmission
 
 int main(int argc, char **argv)
 {
+	if (argc != 3) {
+		printf("parameters not match");
+        exit(1);
+	}
 	int sockfd, ret;
 	struct sockaddr_in ser_addr;
 	char ** pptr;
 	struct hostent *sh;
 	struct in_addr **addrs;
-    char * filename = "test.wav";
+    char * filename = argv[2];
+    //char * filename = "test.wav";
 
-	if (argc != 2) {
-		printf("parameters not match");
-        exit(1);
-	}
 
 	sh = gethostbyname(argv[1]);	                            //get host's information from the input argument
 	if (sh == NULL) {
@@ -111,7 +112,7 @@ void str_cli(FILE *fp, int sockfd)
 
         if ((n = recv(sockfd, hyp, HYPLEN, 0)) == -1)
         {
-            printf("Error in sending packets!\n");
+            printf("Error in receiving packets!\n");
             exit(1);
         }
 

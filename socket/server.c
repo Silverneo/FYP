@@ -2,7 +2,7 @@
  * server.c: pocketsphinx server program
  * using socket communication with C/Matlab
  * Author @ Zhang Chunmeng
- * Last Modified @ 05/02/15
+ * Last Modified @ 11/03/15
  * *********************************************************************/
 
 #include "headsock.h"
@@ -16,11 +16,19 @@ int main(void)
     cmd_ln_t *config;
 
     config = cmd_ln_init(NULL, ps_args(), TRUE,
-            "-hmm", MODELDIR "/hmm/en-us-ptm-2.0-adapt",
-            "-lm", MODELDIR "/lm/generic.lm",
+            "-hmm", MODELDIR "/hmm/voxforge-en-0.1.4",
+            //"-hmm", MODELDIR "/hmm/cmusphinx-en-us-ptm-5.2",
+            "-lm", MODELDIR "/lm/lm_giga_64k_vp_3gram.arpa.DMP",
+            //"-lm", MODELDIR "/lm/generic.lm",
             "-dict", MODELDIR "/lm/cmu07a.dic",
             "-logfn", "/dev/null",
-            "-cmn", "current",
+//            "-lw", "7.0",
+//            "-topn", "16",
+//            "-fillprob", "1e-6",
+//            "-silprob", "0.1",
+//            "-wip", "0.5",
+//            "-compallsen", "yes",
+//            "-beam", "1e-50",
             NULL);
     if (config == NULL)
     {
@@ -99,7 +107,7 @@ void str_ser(int sockfd, ps_decoder_t *ps)
     char const *hyp;
     int rv;
     int32 score;
-    FILE *fp = fopen("received.wav", "wb");
+//    FILE *fp = fopen("received.wav", "wb");
     char recvs[DATALEN];
     char buf[MAXSIZE];
     int16 audioBuf[DATALEN/2];
@@ -154,7 +162,7 @@ void str_ser(int sockfd, ps_decoder_t *ps)
                 printf("Error in sending hyp text!\n");
                 exit(1);
             }
-            printf("Recognized===> %s\n", hyp);
+            //printf("Recognized===> %s\n", hyp);
         }
 
     }
@@ -165,7 +173,7 @@ void str_ser(int sockfd, ps_decoder_t *ps)
     if (rv < 0)
         exit(1);
 
-    fwrite (buf, 1, lseek, fp);					//write data into file
-    fclose(fp);
+    //fwrite (buf, 1, lseek, fp);					//write data into file
+    //fclose(fp);
     printf("File received! %li %li\n", lseek, filesize);
 }

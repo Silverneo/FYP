@@ -12,7 +12,6 @@
 #include "headsock.h"
 #include<pocketsphinx.h>
 
-#define MODELDIR "~/Projects/FYP/model"
 void ps_start_recog(int sockfd, ps_decoder_t *ps); // transmitting and receiving function
 
 int main(void)
@@ -128,6 +127,7 @@ int main(void)
 			close(sockfd);
 			ps_start_recog(con_fd, ps); //receive packet and response
 			close(con_fd);
+            cmd_ln_free_r(config);
             ps_free(ps);
 			exit(0);
 		}
@@ -142,16 +142,13 @@ int main(void)
 void ps_start_recog(int sockfd, ps_decoder_t *ps)
 {
     char const *hyp;
-    int rv;
     int32 score;
     char recvs[DATALEN];
     char buf[MAXSIZE];
-    int16 audioBuf[DATALEN/2];
     int n = 0;
     int count = 0;
     long filesize;
     long lseek = 0;
-    size_t i;
 
     n = recv(sockfd, &filesize, 4, 0);
     //filesize = ntohl(filesize);
@@ -161,9 +158,8 @@ void ps_start_recog(int sockfd, ps_decoder_t *ps)
         //printf("Error in receiving file size!");
         exit(1);
     }
-    rv = ps_start_utt(ps);
-    if (rv < 0)
-        exit(1);
+    ps_start_utt(ps);
+
     while (lseek < filesize)
     {
 
@@ -176,17 +172,12 @@ void ps_start_recog(int sockfd, ps_decoder_t *ps)
 		memcpy((buf+lseek), recvs, count);
         lseek += count;
 
-        for (i = 0; i < count; i += 2)
+        if (lseek >= filesize)
         {
-            audioBuf[i/2] = (unsigned char)recvs[i] + ((int16)recvs[i+1] << 8);
-        }
-
-        rv = ps_process_raw(ps, audioBuf, count/2, FALSE, FALSE);
-        hyp = ps_get_hyp(ps, &score);
-
-        if (hyp == NULL)
-        {
-            if ((n = send(sockfd, "...", 4, 0)) == -1)
+            ps_process_raw(ps, (int16 *)buf, lseek/2, FALSE, TRUE);
+            ps_end_utt(ps);
+            hyp = ps_get_hyp(ps, &score);
+            if ((n = send(sockfd, hyp, strlen(hyp), 0)) == -1)
             {
                 //printf("Error in sending hyp text!\n");
                 exit(1);
@@ -194,18 +185,12 @@ void ps_start_recog(int sockfd, ps_decoder_t *ps)
         }
         else
         {
-            if ((n = send(sockfd, hyp, strlen(hyp), 0)) == -1)
+            if ((n = send(sockfd, "...", 4, 0)) == -1)
             {
-                //printf("Error in sending hyp text!\n");
+                //printf("Error in sending ack\n");
                 exit(1);
             }
-            //printf("Recognized===> %s\n", hyp);
         }
 
     }
-
-    //rv = ps_process_raw(ps, buf, lseek/2, FALSE, FALSE);
-    rv = ps_end_utt(ps);
-    if (rv < 0) exit(1);
-
 }

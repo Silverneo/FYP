@@ -3,7 +3,7 @@
  * using socket communication with C/Matlab
  * Port the original version into daemon
  * Author @ Zhang Chunmeng
- * Last Modified @ 15/02/15
+ * Last Modified @ 04/04/15
  * TODO: - add log file function
  *       - modify the socket initialization process
  *       - multi-request process
@@ -12,14 +12,15 @@
 #include "headsock.h"
 #include<pocketsphinx.h>
 
-void recognize(int sockfd, ps_decoder_t *ps); // transmitting and receiving function
+#define MODELDIR "~/Projects/FYP/model"
+void ps_start_recog(int sockfd, ps_decoder_t *ps); // transmitting and receiving function
 
 int main(void)
 {
 	int sockfd, con_fd, ret;
 	struct sockaddr_in my_addr;
-	struct sockaddr_in their_addr;
-	int sin_size;
+	struct sockaddr_in client_addr;
+	socklen_t sin_size;
     
     ps_decoder_t *ps;
     cmd_ln_t *config;
@@ -47,27 +48,33 @@ int main(void)
 	}
 
     config = cmd_ln_init(NULL, ps_args(), TRUE,
-            "-hmm", MODELDIR "/hmm/en_US/en-us-ptm-2.0-adapt",
-            "-lm", MODELDIR "/lm/en_US/cmusphinx-5.0-en-us.lm",
-            "-dict", MODELDIR "/lm/en_US/cmu07a.dic",
+            "-hmm", "/home/chunmeng/Projects/FYP/model/hmm/en-us-ptm-5.2-adapt",
+            "-lm", "/home/chunmeng/Projects/FYP/model/lm/lm_giga_64k_vp_3gram.arpa.DMP",
+            "-dict", "/home/chunmeng/Projects/FYP/model/lm/cmu07a.dic",
             "-logfn", "/dev/null",
             "-cmn", "current",
+            "-lw", "4",
+            "-frate", "85",
+//            "-topn", "16",
+//            "-fillprob", "1e-6",
+//            "-silprob", "0.1",
+//            "-wip", "0.5",
+//            "-compallsen", "yes",
+//            "-beam", "1e-50",
             NULL);
     if (config == NULL)
     {
         printf("PocketSphinx Config Error!\n");
         exit(1);
     }
-
-    if ((ps = ps_init(config)) == NULL)
+    if ((ps = ps_init(config)) == NULL) // init decoder
     {
+        cmd_ln_free_r(config);
         printf("Error in ps_init!\n");
         exit(1);
     }
-	
 
-    // fork to start the daemon process
-    pid = fork();
+    pid = fork(); // fork to start the daemon process
 
     if (pid < 0)
     {
@@ -77,13 +84,15 @@ int main(void)
     else if (pid > 0)
     {
         printf("Starting daemon process: %d\n", pid);
+        
         close(sockfd);
+        cmd_ln_free_r(config);
         ps_free(ps);
+
         exit(0);
     }
 
-    sid = setsid();
-    if (sid < 0)
+    if ((sid = setsid()) < 0)
     {
         exit(1);
     }
@@ -99,16 +108,15 @@ int main(void)
     close(STDERR_FILENO);
 
 
-	ret = listen(sockfd, BACKLOG);                              //listen
-	if (ret <0) {
-		//printf("error in listening");
+	if ((ret = listen(sockfd, BACKLOG)) < 0) { // listen to the socket
+		//TODO printf("error in listening");
 		exit(1);
 	}
 
 	while (1)
 	{
 		sin_size = sizeof (struct sockaddr_in);
-		con_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);            //accept the packet
+		con_fd = accept(sockfd, (struct sockaddr *)&client_addr, &sin_size);            //accept the packet
 		if (con_fd < 0)
 		{
             //TODO LOG INFO
@@ -118,7 +126,7 @@ int main(void)
 		if ((pid = fork()) == 0) // creat acception process
 		{
 			close(sockfd);
-			recognize(con_fd, ps); //receive packet and response
+			ps_start_recog(con_fd, ps); //receive packet and response
 			close(con_fd);
             ps_free(ps);
 			exit(0);
@@ -131,7 +139,7 @@ int main(void)
 	}
 }
 
-void recognize(int sockfd, ps_decoder_t *ps)
+void ps_start_recog(int sockfd, ps_decoder_t *ps)
 {
     char const *hyp;
     int rv;

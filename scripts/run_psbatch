@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Script to run pocketsphinx_batch
+# Author @ Zhang Chunmeng
+# Last Modified @ 31/03/2015
+
+hyp="result.hyp"
+ref="Prompt_All"
+wavdir="Test_KK"
+ctlfile="Test.fields"
+pocketsphinx_batch \
+    -adcin yes \
+    -cepdir $wavdir \
+    -cepext .wav \
+    -ctl $ctlfile \
+    -lm ~/Projects/FYP/model/lm/lm_en_us_generic.arpa.DMP \
+    -dict ~/Projects/FYP/model/lm/cmu07a.dic \
+    -hmm ~/Projects/FYP/model/hmm/en-us-ptm-5.2-adapt \
+    -frate 85 \
+    -lw 4 \
+    -hyp $hyp
+
+./word_align.pl $ref $hyp | grep 'TOTAL'
+echo "speech recognition finshed!"
+
+# Possible parameters for tuning
+#    -logfn /dev/null \
+#    -beam 1e-80 \
+#    -topn 16 \
+#    -compallsen yes \

@@ -21,12 +21,6 @@ int main(void)
     struct sockaddr_in my_addr; // local socket address
     struct sockaddr_in client_addr; // client socket address
 
-    ps_decoder_t *ps;
-    cmd_ln_t *config;
-
-    pid_t pid, sid;
-    int n, status;
-
     sockfd = socket(AF_INET, SOCK_STREAM, 0); //create socket
     if (sockfd < 0)
     {
@@ -41,12 +35,18 @@ int main(void)
 
     n = bind(sockfd, (struct sockaddr *) &my_addr,
             sizeof(struct sockaddr)); //bind socket
-
     if (n < 0)
     {
         printf("Error in socket binding\n");
         exit(1);
     }
+
+    ps_decoder_t *ps;
+    cmd_ln_t *config;
+
+    pid_t pid, sid;
+    int n, status;
+
 
     config = cmd_ln_init(NULL, ps_args(), TRUE,
             "-hmm", "/home/chunmeng/Projects/FYP/model/hmm/en-us-ptm-5.2-adapt",

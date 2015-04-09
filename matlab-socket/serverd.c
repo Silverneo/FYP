@@ -155,42 +155,31 @@ void ps_start_recog(int sockfd, ps_decoder_t *ps)
 
     if (n == -1)
     {
-        //printf("Error in receiving file size!");
         exit(1);
     }
     ps_start_utt(ps);
 
     while (lseek < filesize)
     {
-
-        if ((count = recv(sockfd, &recvs, DATALEN, 0))==-1)                                   //receive the packet
+        // receive the packet with length of DATALEN
+        if ((count = recv(sockfd, &recvs, DATALEN, 0))==-1)
         {
-            //printf("receiving error!\n");
             exit(1);
         }
-        // record recevived wav file
+        // copy recevived packet to buffer
         memcpy((buf+lseek), recvs, count);
         lseek += count;
 
         if (lseek >= filesize)
         {
+            // full utterance, start decoding
             ps_process_raw(ps, (int16 *)buf, lseek/2, FALSE, TRUE);
             ps_end_utt(ps);
-            hyp = ps_get_hyp(ps, &score);
+            hyp = ps_get_hyp(ps, &score); // get hypothesis
             if ((n = send(sockfd, hyp, strlen(hyp), 0)) == -1)
             {
-                //printf("Error in sending hyp text!\n");
                 exit(1);
             }
         }
-        else
-        {
-            if ((n = send(sockfd, "...", 4, 0)) == -1)
-            {
-                //printf("Error in sending ack\n");
-                exit(1);
-            }
-        }
-
     }
 }

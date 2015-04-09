@@ -16,23 +16,23 @@ void ps_start_recog(int sockfd, ps_decoder_t *ps); // transmitting and receiving
 
 int main(void)
 {
-	socklen_t sin_size;
-	int sockfd, con_fd; // socket & connection file descriptor
-	struct sockaddr_in my_addr; // local socket address
-	struct sockaddr_in client_addr; // client socket address
+    socklen_t sin_size;
+    int sockfd, con_fd; // socket & connection file descriptor
+    struct sockaddr_in my_addr; // local socket address
+    struct sockaddr_in client_addr; // client socket address
 
     ps_decoder_t *ps;
     cmd_ln_t *config;
 
-	pid_t pid, sid;
+    pid_t pid, sid;
     int n, status;
 
-	sockfd = socket(AF_INET, SOCK_STREAM, 0); //create socket
-	if (sockfd < 0)
-	{
-		printf("Error in socket!\n");
-		exit(1);
-	}
+    sockfd = socket(AF_INET, SOCK_STREAM, 0); //create socket
+    if (sockfd < 0)
+    {
+        printf("Error in socket!\n");
+        exit(1);
+    }
 
     my_addr.sin_family = AF_INET;
     my_addr.sin_port = htons(MYTCP_PORT); //port number
@@ -56,12 +56,12 @@ int main(void)
             "-cmn", "current",
             "-lw", "4",
             "-frate", "85",
-//            "-topn", "16",
-//            "-fillprob", "1e-6",
-//            "-silprob", "0.1",
-//            "-wip", "0.5",
-//            "-compallsen", "yes",
-//            "-beam", "1e-50",
+            //            "-topn", "16",
+            //            "-fillprob", "1e-6",
+            //            "-silprob", "0.1",
+            //            "-wip", "0.5",
+            //            "-compallsen", "yes",
+            //            "-beam", "1e-50",
             NULL);
     if (config == NULL)
     {
@@ -107,36 +107,36 @@ int main(void)
     close(STDERR_FILENO);
 
 
-	if ((n = listen(sockfd, BACKLOG)) < 0) { // listen to the socket
-		//TODO printf("error in listening");
-		exit(1);
-	}
+    if ((n = listen(sockfd, BACKLOG)) < 0) { // listen to the socket
+        //TODO printf("error in listening");
+        exit(1);
+    }
 
-	while (1)
-	{
-		sin_size = sizeof (struct sockaddr_in);
-		con_fd = accept(sockfd, (struct sockaddr *)&client_addr, &sin_size);            //accept the packet
-		if (con_fd < 0)
-		{
+    while (1)
+    {
+        sin_size = sizeof (struct sockaddr_in);
+        con_fd = accept(sockfd, (struct sockaddr *)&client_addr, &sin_size);            //accept the packet
+        if (con_fd < 0)
+        {
             //TODO LOG INFO
-			exit(1);
-		}
+            exit(1);
+        }
 
-		if ((pid = fork()) == 0) // creat acception process
-		{
-			close(sockfd);
-			ps_start_recog(con_fd, ps); //receive packet and response
-			close(con_fd);
+        if ((pid = fork()) == 0) // creat acception process
+        {
+            close(sockfd);
+            ps_start_recog(con_fd, ps); //receive packet and response
+            close(con_fd);
             cmd_ln_free_r(config);
             ps_free(ps);
-			exit(0);
-		}
-		else
+            exit(0);
+        }
+        else
         {
             waitpid(pid, &status, 0);
             close(con_fd); //parent process
         }
-	}
+    }
 }
 
 void ps_start_recog(int sockfd, ps_decoder_t *ps)
@@ -169,7 +169,7 @@ void ps_start_recog(int sockfd, ps_decoder_t *ps)
             exit(1);
         }
         // record recevived wav file
-		memcpy((buf+lseek), recvs, count);
+        memcpy((buf+lseek), recvs, count);
         lseek += count;
 
         if (lseek >= filesize)

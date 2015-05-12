@@ -3,12 +3,12 @@
 # Acoustic Model Adaption
 # Author @ Zhang Chunmeng
 # Date @ 12/01/2015
-# Last Modified @ 31/01/2015
+# Last Modified @ 10/04/2015
 
 function run_bw {
 # collect statistics from the adaptation data
 # bw from SphinxTrain (found in /usr/local/libexec/sphinxtrain)
-# IMPORTANT modify the parameters below based on feat.params file in AM
+# modify the parameters below based on feat.params file in AM
 ./bw -hmmdir $amdir \
     -moddeffn $amdir/mdef.txt \
     -ts2cbfn ".$mode." \
@@ -40,26 +40,42 @@ fi
 
 # generate feature files from wav recordings
 # sphinx_fe from SphinxBase
-sphinx_fe -argfile $amdir/feat.params -samprate 16000 -c $etcdir/*.fields -di $wavdir -do temp -ei wav -eo mfc -mswav yes
+sphinx_fe \
+    -argfile $amdir/feat.params \
+    -samprate 16000 \
+    -c $etcdir/*.fields \
+    -di $wavdir \
+    -do temp \
+    -ei wav \
+    -eo mfc \
+    -mswav yes
 
 # convert mdef to text file
-pocketsphinx_mdef_convert -text $amdir/mdef $amdir/mdef.txt
+pocketsphinx_mdef_convert \
+    -text $amdir/mdef $amdir/mdef.txt
 
 run_bw
 
 # MLLR Adaptation, mllr_matrix generated
-./mllr_solve -meanfn $amdir/means -varfn $amdir/variances -outmllrfn mllr_matrix -accumdir temp
+./mllr_solve \
+    -meanfn $amdir/means \
+    -varfn $amdir/variances \
+    -outmllrfn mllr_matrix \
+    -accumdir temp
 
 #TODO
 # mllr_transform from SphinxTrain Adjust the mean of the original AM
-./mllr_transform -inmeanfn $amdir/means -outmeanfn $amdir/means -mllrmat mllr_matrix 
+./mllr_transform \
+    -inmeanfn $amdir/means \
+    -outmeanfn $amdir/means \
+    -mllrmat mllr_matrix
 
 run_bw
 
 # MAP Adaptation
 # Add -fixedtau yes -tau "value" for semi & ptm model
-#./map_adapt -meanfn $amdir/means \
-./map_adapt -meanfn $amdir/means \
+./map_adapt \
+    -meanfn $amdir/means \
     -varfn $amdir/variances \
     -mixwfn $amdir/mixture_weights \
     -tmatfn $amdir/transition_matrices \
@@ -70,5 +86,3 @@ run_bw
     -mapvarfn $amdir/variances \
     -mapmixwfn $amdir/mixture_weights \
     -maptmatfn $amdir/transition_matrices
-
-# TODO clean up files

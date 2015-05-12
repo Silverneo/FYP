@@ -16,35 +16,35 @@ void ps_start_recog(int sockfd, ps_decoder_t *ps); // transmitting and receiving
 
 int main(void)
 {
-	int sockfd, con_fd, ret;
-	struct sockaddr_in my_addr;
-	struct sockaddr_in client_addr;
-	socklen_t sin_size;
-    
+    socklen_t sin_size;
+    int sockfd, con_fd; // socket & connection file descriptor
+    struct sockaddr_in my_addr; // local socket address
+    struct sockaddr_in client_addr; // client socket address
     ps_decoder_t *ps;
     cmd_ln_t *config;
 
-	pid_t pid, sid;
-    int status;
+    pid_t pid, sid;
+    int n, status;
 
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);          //create socket
-	if (sockfd < 0)
-	{
-		printf("error in socket!\n");
-		exit(1);
-	}
-	
-	my_addr.sin_family = AF_INET;
-	my_addr.sin_port = htons(MYTCP_PORT);				//port number
-	my_addr.sin_addr.s_addr = htonl(INADDR_ANY);        //any client ip address
-	bzero(&(my_addr.sin_zero), 8);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0); //create socket
+    if (sockfd < 0)
+    {
+        printf("Error in socket!\n");
+        exit(1);
+    }
 
-	ret = bind(sockfd, (struct sockaddr *) &my_addr, sizeof(struct sockaddr)); //bind socket
-	if (ret < 0)
-	{
-		printf("error in binding\n");
-		exit(1);
-	}
+    my_addr.sin_family = AF_INET;
+    my_addr.sin_port = htons(MYTCP_PORT); //port number
+    my_addr.sin_addr.s_addr = htonl(INADDR_ANY); //any ip address
+    bzero(&(my_addr.sin_zero), 8);
+
+    n = bind(sockfd, (struct sockaddr *) &my_addr,
+            sizeof(struct sockaddr)); //bind socket
+    if (n < 0)
+    {
+        printf("Error in socket binding\n");
+        exit(1);
+    }
 
     config = cmd_ln_init(NULL, ps_args(), TRUE,
 //            "-hmm", "/home/chunmeng/model/hmm/en-us-ptm-5.2",
@@ -79,9 +79,7 @@ int main(void)
         exit(1);
     }
 
-    pid = fork(); // fork to start the daemon process
-
-    if (pid < 0)
+    if ((pid = fork()) < 0) // fork to start the daemon process
     {
         printf("Error in fork!\n");
         exit(1);
@@ -89,7 +87,7 @@ int main(void)
     else if (pid > 0)
     {
         printf("Starting daemon process: %d\n", pid);
-        
+
         close(sockfd);
         cmd_ln_free_r(config);
         ps_free(ps);
@@ -113,36 +111,36 @@ int main(void)
     close(STDERR_FILENO);
 
 
-	if ((ret = listen(sockfd, BACKLOG)) < 0) { // listen to the socket
-		//TODO printf("error in listening");
-		exit(1);
-	}
+    if ((n = listen(sockfd, BACKLOG)) < 0) { // listen to the socket
+        //TODO printf("error in listening");
+        exit(1);
+    }
 
-	while (1)
-	{
-		sin_size = sizeof (struct sockaddr_in);
-		con_fd = accept(sockfd, (struct sockaddr *)&client_addr, &sin_size);            //accept the packet
-		if (con_fd < 0)
-		{
+    while (1)
+    {
+        sin_size = sizeof (struct sockaddr_in);
+        con_fd = accept(sockfd, (struct sockaddr *)&client_addr, &sin_size);            //accept the packet
+        if (con_fd < 0)
+        {
             //TODO LOG INFO
-			exit(1);
-		}
+            exit(1);
+        }
 
-		if ((pid = fork()) == 0) // creat acception process
-		{
-			close(sockfd);
-			ps_start_recog(con_fd, ps); //receive packet and response
-			close(con_fd);
+        if ((pid = fork()) == 0) // creat acception process
+        {
+            close(sockfd);
+            ps_start_recog(con_fd, ps); //receive packet and response
+            close(con_fd);
             cmd_ln_free_r(config);
             ps_free(ps);
-			exit(0);
-		}
-		else
+            exit(0);
+        }
+        else
         {
             waitpid(pid, &status, 0);
             close(con_fd); //parent process
         }
-	}
+    }
 }
 
 void ps_start_recog(int sockfd, ps_decoder_t *ps)
@@ -161,25 +159,24 @@ void ps_start_recog(int sockfd, ps_decoder_t *ps)
 
     if (n == -1)
     {
-        //printf("Error in receiving file size!");
         exit(1);
     }
     ps_start_utt(ps);
 
     while (lseek < filesize)
     {
-
-        if ((count = recv(sockfd, &recvs, DATALEN, 0))==-1)                                   //receive the packet
+        // receive the packet with length of DATALEN
+        if ((count = recv(sockfd, &recvs, DATALEN, 0))==-1)
         {
-            //printf("receiving error!\n");
             exit(1);
         }
-        // record recevived wav file
-		memcpy((buf+lseek), recvs, count);
+        // copy recevived packet to buffer
+        memcpy((buf+lseek), recvs, count);
         lseek += count;
 
         if (lseek >= filesize)
         {
+            // full utterance, start decoding
             ps_process_raw(ps, (int16 *)buf, lseek/2, FALSE, TRUE);
             ps_end_utt(ps);
             hyp = ps_get_hyp(ps, &score);
@@ -201,14 +198,5 @@ void ps_start_recog(int sockfd, ps_decoder_t *ps)
                 }
             }
         }
-//        else
-//        {
-//            if ((n = send(sockfd, "...", 4, 0)) == -1)
-//            {
-//                //printf("Error in sending ack\n");
-//                exit(1);
-//            }
-//        }
-
     }
 }

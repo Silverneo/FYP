@@ -14,7 +14,7 @@
 
 #define MYTCP_PORT 4950
 #define MYUDP_PORT 5350
-#define MAXSIZE 1000000
+#define MAXSIZE 2000000
 #define DATALEN 1024
 #define HYPLEN 500
 #define BACKLOG 10

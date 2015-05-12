@@ -30,7 +30,7 @@ int main(void)
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);          //create socket
 	if (sockfd < 0)
 	{
-		//printf("error in socket!\n");
+		printf("error in socket!\n");
 		exit(1);
 	}
 	
@@ -42,18 +42,24 @@ int main(void)
 	ret = bind(sockfd, (struct sockaddr *) &my_addr, sizeof(struct sockaddr)); //bind socket
 	if (ret < 0)
 	{
-		//printf("error in binding\n");
+		printf("error in binding\n");
 		exit(1);
 	}
 
     config = cmd_ln_init(NULL, ps_args(), TRUE,
-            "-hmm", "/home/chunmeng/Projects/FYP/model/hmm/en-us-ptm-5.2-adapt",
-            "-lm", "/home/chunmeng/Projects/FYP/model/lm/lm_giga_64k_vp_3gram.arpa.DMP",
-            "-dict", "/home/chunmeng/Projects/FYP/model/lm/cmu07a.dic",
+//            "-hmm", "/home/chunmeng/model/hmm/en-us-ptm-5.2",
+            "-hmm", "/home/chunmeng/model/hmm/en-us-ptm-5.2-adapt",
+//            "-hmm", "/home/chunmeng/model/hmm/en-us-ptm-8khz-5.2",
+//            "-hmm", "/home/chunmeng/model/hmm/en-us-ptm-8khz-5.2-adapt",
+//            "-hmm", "/home/chunmeng/model/hmm/en-us-8khz-5.1",
+//            "-hmm", "/home/chunmeng/model/hmm/hub4wsj_sc_8k",
+            "-lm", "/home/chunmeng/model/lm/lm_giga_64k_vp_3gram.arpa.DMP",
+            "-dict", "/home/chunmeng/model/lm/cmu07a.dic",
+//            "-samprate", "8000",
+//            "-kws", "keyphrase.fields",
             "-logfn", "/dev/null",
-            "-cmn", "current",
-            "-lw", "4",
-            "-frate", "85",
+//            "-lw", "4",
+//            "-frate", "85",
 //            "-topn", "16",
 //            "-fillprob", "1e-6",
 //            "-silprob", "0.1",
@@ -177,20 +183,32 @@ void ps_start_recog(int sockfd, ps_decoder_t *ps)
             ps_process_raw(ps, (int16 *)buf, lseek/2, FALSE, TRUE);
             ps_end_utt(ps);
             hyp = ps_get_hyp(ps, &score);
-            if ((n = send(sockfd, hyp, strlen(hyp), 0)) == -1)
+            if (hyp == NULL)
             {
-                //printf("Error in sending hyp text!\n");
-                exit(1);
+                if ((n = send(sockfd, "No hyp!", 8, 0)) == -1)
+                {
+                    //printf("Error in sending hyp text!\n");
+                    exit(1);
+                }
+
+            }
+            else
+            {
+                if ((n = send(sockfd, hyp, strlen(hyp), 0)) == -1)
+                {
+                    //printf("Error in sending hyp text!\n");
+                    exit(1);
+                }
             }
         }
-        else
-        {
-            if ((n = send(sockfd, "...", 4, 0)) == -1)
-            {
-                //printf("Error in sending ack\n");
-                exit(1);
-            }
-        }
+//        else
+//        {
+//            if ((n = send(sockfd, "...", 4, 0)) == -1)
+//            {
+//                //printf("Error in sending ack\n");
+//                exit(1);
+//            }
+//        }
 
     }
 }
